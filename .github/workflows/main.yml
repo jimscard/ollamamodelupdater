@@ -43,7 +43,8 @@ jobs:
       - uses: actions/upload-artifact@v4 # save files for next step
         with:
           name: artifacts
-          path: linux-ollamamodelupdate
+          path: |
+            linux-ollamamodelupdate
             win-ollamamodelupdate.exe
             macos-x86-ollamamodelupdate
             macos-arm64-ollamamodelupdate
@@ -72,7 +73,8 @@ jobs:
       - uses: actions/upload-artifact@v4 # save the files back, overwriting
         with:
           name: artifacts
-          path: linux-ollamamodelupdate
+          path: |
+            linux-ollamamodelupdate
             win-ollamamodelupdate.exe
             macos-x86-ollamamodelupdate
             macos-arm64-ollamamodelupdate

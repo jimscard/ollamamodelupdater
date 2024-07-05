@@ -1,5 +1,5 @@
 import { encodeHex } from "https://deno.land/std@0.202.0/encoding/hex.ts";
-import ollama from 'npm:ollama';
+import ollama from 'ollama';
 
 const local_models_raw = await ollama.list();
 /**
@@ -33,13 +33,16 @@ for await (const model of localModels) {
       console.log(`You have an outdated version of ${model.name}`)
       console.log(`Updating ${model.name}`)
       const pullResponse = await ollama.pull({ model: model.name, stream: true }); 
-/**
- * Encodes a string using the TextEncoder class.
- *
- * @param s - The string to be encoded.
- * @returns The encoded string as a Uint8Array.
- */
-const enc = (s: string) => new TextEncoder().encode(s);
+
+      /**
+       * Encodes a string using the TextEncoder class.
+       *
+       * @param s - The string to be encoded.
+       * @returns The encoded string as a Uint8Array.
+       */
+      const enc = (s: string) => new TextEncoder().encode(s);
+
+      let linelength = 0; // Declare and initialize linelength variable
 
       for await (const part of pullResponse) {
         if (part.digest) {
