@@ -33,6 +33,7 @@ jobs:
 
     runs-on: ubuntu-latest
     needs: changelog
+
     # always run (removed if)
     steps:
       - uses: actions/checkout@v4
@@ -42,12 +43,8 @@ jobs:
       - run: deno compile --allow-net --target ${{ matrix.target.target }} --output ${{ matrix.target.file}} update.ts
       - uses: actions/upload-artifact@v4 # save files for next step
         with:
-          name: artifacts
-          path: |
-            linux-ollamamodelupdate
-            win-ollamamodelupdate.exe
-            macos-x86-ollamamodelupdate
-            macos-arm64-ollamamodelupdate
+          name: ${{ matrix.target.file }}
+          path: ${{ matrix.target.file }}
           overwrite: true
 
   codesign_macOS:
@@ -60,7 +57,10 @@ jobs:
           p12-password: ${{ secrets.CERTIFICATE_P12_PASSWORD }}
       - uses: actions/download-artifact@v4 # retrieve the compiled files
         with:
-          name: artifacts
+          name: macos-x86-ollamamodelupdate
+      - uses: apple-actions/download-artifact@v4
+        with:
+          name: macos-arm64-ollamamodelupdate
       - name: Code sign binaries
         run: |
           codesign --force --options=runtime \
@@ -72,13 +72,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4 # save the files back, overwriting
         with:
-          name: artifacts
+          name: signed_files
           path: |
-            linux-ollamamodelupdate
-            win-ollamamodelupdate.exe
             macos-x86-ollamamodelupdate
             macos-arm64-ollamamodelupdate
-          overwrite: true
 
   release:
     runs-on: ubuntu-latest
@@ -87,7 +84,13 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4 # retrieve the files to be released
         with:
-          name: artifacts
+          name: signed_files
+      - uses: actions/download-artificat@v4
+        with:
+          name: linux-ollamamodelupdate
+      - uses: actions/download-artifact@v4
+        with:
+          name: win-ollamamodelupdate.exe
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
