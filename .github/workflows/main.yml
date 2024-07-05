@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - main
-      
+
 jobs:
   changelog:
     runs-on: ubuntu-latest
@@ -18,31 +18,32 @@ jobs:
         uses: TriPSs/conventional-changelog-action@v4.1.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      
+
   compile:
     strategy:
-      matrix: 
+      matrix:
         target:
-          - {target: x86_64-unknown-linux-gnu, file: linux-ollamamodelupdate}
-          - {target: x86_64-pc-windows-msvc, file: win-ollamamodelupdate.exe}
-          - {target: x86_64-apple-darwin, file: macos-x86-ollamamodelupdate}
-          - {target: aarch64-apple-darwin, file: macos-arm64-ollamamodelupdate}
+          - { target: x86_64-unknown-linux-gnu, file: linux-ollamamodelupdate }
+          - { target: x86_64-pc-windows-msvc, file: win-ollamamodelupdate.exe }
+          - { target: x86_64-apple-darwin, file: macos-x86-ollamamodelupdate }
+          - {
+              target: aarch64-apple-darwin,
+              file: macos-arm64-ollamamodelupdate,
+            }
 
     runs-on: ubuntu-latest
     needs: changelog
-    if: ${{ needs.changelog.outputs.skipped == 'false' }}
+    # always run (removed if)
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v1
-        with: 
+        with:
           deno-version: 1.37.2
-      - run: 
-          deno compile --allow-net --target ${{ matrix.target.target }} --output ${{ matrix.target.file}} update.ts
+      - run: deno compile --allow-net --target ${{ matrix.target.target }} --output ${{ matrix.target.file}} update.ts
       - uses: actions/upload-artifact@v4 # save files for next step
         with:
           name: artifacts
-          path:
-            linux-ollamamodelupdate
+          path: linux-ollamamodelupdate
             win-ollamamodelupdate.exe
             macos-x86-ollamamodelupdate
             macos-arm64-ollamamodelupdate
@@ -71,31 +72,29 @@ jobs:
       - uses: actions/upload-artifact@v4 # save the files back, overwriting
         with:
           name: artifacts
-          path:
-            linux-ollamamodelupdate
+          path: linux-ollamamodelupdate
             win-ollamamodelupdate.exe
             macos-x86-ollamamodelupdate
             macos-arm64-ollamamodelupdate
           overwrite: true
 
-
   release:
-      runs-on: ubuntu-latest
-      needs: [changelog, compile, codesign_macOS]
-      if: ${{ needs.changelog.outputs.skipped == 'false' }}
-      steps:
-        - uses: actions/download-artifact@v4 # retrieve the files to be released
-          with:
-            name: artifacts
-        - name: Release
-          uses: softprops/action-gh-release@v1
-          with:
-            tag_name: ${{ needs.changelog.outputs.tag }}
-            name: ${{ needs.changelog.outputs.tag }}
-            body: ${{ needs.changelog.outputs.output }}
-            files: |
-              linux-ollamamodelupdate
-              win-ollamamodelupdate.exe
-              macos-x86-ollamamodelupdate
-              macos-arm64-ollamamodelupdate
-            token: ${{ secrets.GITHUB_TOKEN }}
+    runs-on: ubuntu-latest
+    needs: [changelog, compile, codesign_macOS]
+    if: ${{ needs.changelog.outputs.skipped == 'false' }}
+    steps:
+      - uses: actions/download-artifact@v4 # retrieve the files to be released
+        with:
+          name: artifacts
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.changelog.outputs.tag }}
+          name: ${{ needs.changelog.outputs.tag }}
+          body: ${{ needs.changelog.outputs.output }}
+          files: |
+            linux-ollamamodelupdate
+            win-ollamamodelupdate.exe
+            macos-x86-ollamamodelupdate
+            macos-arm64-ollamamodelupdate
+          token: ${{ secrets.GITHUB_TOKEN }}
