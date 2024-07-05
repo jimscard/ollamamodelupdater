@@ -38,6 +38,15 @@ jobs:
           deno-version: 1.37.2
       - run: 
           deno compile --allow-net --target ${{ matrix.target.target }} --output ${{ matrix.target.file}} update.ts
+      - uses: actions/upload-artifact@v4 # save files for next step
+        with:
+          name: artifacts
+          path:
+            linux-ollamamodelupdate
+            win-ollamamodelupdate.exe
+            macos-x86-ollamamodelupdate
+            macos-arm64-ollamamodelupdate
+          overwrite: true
 
   codesign_macOS:
     runs-on: macos-latest
@@ -47,6 +56,9 @@ jobs:
         with:
           p12-file-base64: ${{ secrets.CERTIFICATE_P12 }}
           p12-password: ${{ secrets.CERTIFICATE_P12_PASSWORD }}
+      - uses: actions/download-artifact@v4 # retrieve the compiled files
+        with:
+          name: artifacts
       - name: Code sign binaries
         run: |
           codesign --force --options=runtime \
@@ -56,12 +68,25 @@ jobs:
             --sign "Developer ID Application: James Scardelis (555ZRFTBY3)" \
             macos-arm64-ollamamodelupdate
 
+      - uses: actions/upload-artifact@v4 # save the files back, overwriting
+        with:
+          name: artifacts
+          path:
+            linux-ollamamodelupdate
+            win-ollamamodelupdate.exe
+            macos-x86-ollamamodelupdate
+            macos-arm64-ollamamodelupdate
+          overwrite: true
+
 
   release:
       runs-on: ubuntu-latest
       needs: [changelog, compile, codesign_macOS]
       if: ${{ needs.changelog.outputs.skipped == 'false' }}
       steps:
+        - uses: actions/download-artifact@v4 # retrieve the files to be released
+          with:
+            name: artifacts
         - name: Release
           uses: softprops/action-gh-release@v1
           with:
