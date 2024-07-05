@@ -58,7 +58,7 @@ jobs:
       - uses: actions/download-artifact@v4 # retrieve the compiled files
         with:
           name: macos-x86-ollamamodelupdate
-      - uses: apple-actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: macos-arm64-ollamamodelupdate
       - name: Code sign binaries
