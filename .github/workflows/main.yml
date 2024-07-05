@@ -22,7 +22,12 @@ jobs:
   compile:
     strategy:
       matrix: 
-        target: [{target: x86_64-unknown-linux-gnu, file: linux-ollamamodelupdate}, {target: x86_64-pc-windows-msvc, file: win-ollamamodelupdate.exe}, {target: x86_64-apple-darwin, file: macos-x86-ollamamodelupdate}, {target: aarch64-apple-darwin, file: macos-arm64-ollamamodelupdate}]
+        target:
+          - {target: x86_64-unknown-linux-gnu, file: linux-ollamamodelupdate}
+          - {target: x86_64-pc-windows-msvc, file: win-ollamamodelupdate.exe}
+          - {target: x86_64-apple-darwin, file: macos-x86-ollamamodelupdate}
+          - {target: aarch64-apple-darwin, file: macos-arm64-ollamamodelupdate}
+
     runs-on: ubuntu-latest
     needs: changelog
     if: ${{ needs.changelog.outputs.skipped == 'false' }}
@@ -33,18 +38,39 @@ jobs:
           deno-version: 1.37.2
       - run: 
           deno compile --allow-net --target ${{ matrix.target.target }} --output ${{ matrix.target.file}} update.ts
-  
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: ${{ needs.changelog.outputs.skipped == 'false' }}
+
+  codesign_macOS:
+    runs-on: macos-latest
+    needs: compile
+    steps:
+      - uses: apple-actions/import-codesign-certs@v3
         with:
-          tag_name: ${{ needs.changelog.outputs.tag }}
-          name: ${{ needs.changelog.outputs.tag }}
-          body: ${{ needs.changelog.outputs.output }}
-          files: |
-            linux-ollamamodelupdate
-            win-ollamamodelupdate.exe
+          p12-file-base64: ${{ secrets.CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.CERTIFICATE_P12_PASSWORD }}
+      - name: Code sign binaries
+        run: |
+          codesign --force --options=runtime \
+            --sign "Developer ID Application: James Scardelis (555ZRFTBY3)" \
             macos-x86-ollamamodelupdate
+          codesign --force --options=runtime \
+            --sign "Developer ID Application: James Scardelis (555ZRFTBY3)" \
             macos-arm64-ollamamodelupdate
-            
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+
+  release:
+      runs-on: ubuntu-latest
+      needs: [changelog, compile, codesign_macOS]
+      if: ${{ needs.changelog.outputs.skipped == 'false' }}
+      steps:
+        - name: Release
+          uses: softprops/action-gh-release@v1
+          with:
+            tag_name: ${{ needs.changelog.outputs.tag }}
+            name: ${{ needs.changelog.outputs.tag }}
+            body: ${{ needs.changelog.outputs.output }}
+            files: |
+              linux-ollamamodelupdate
+              win-ollamamodelupdate.exe
+              macos-x86-ollamamodelupdate
+              macos-arm64-ollamamodelupdate
+            token: ${{ secrets.GITHUB_TOKEN }}
